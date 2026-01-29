@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>King B2K Pairing</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #050505;
+            color: #00ff41;
+            font-family: 'Orbitron', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        .container {
+            background: rgba(0, 20, 0, 0.8);
+            border: 2px solid #00ff41;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px #00ff41;
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            position: relative;
+        }
+        h1 { margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
+        p { font-size: 12px; color: #aaa; margin-bottom: 20px; }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            background: #000;
+            border: 1px solid #00ff41;
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 18px;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #00ff41;
+            color: #000;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+        button:hover { background: #fff; box-shadow: 0 0 15px #fff; }
+
+        .result {
+            margin-top: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            letter-spacing: 5px;
+            display: none;
+            background: #111;
+            padding: 10px;
+            border: 1px dashed #00ff41;
+        }
+        
+        .loading { display: none; color: #00ff41; font-size: 14px; margin-top: 10px; }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>KING B2K</h1>
+        <p>WHATSAPP BOT SESSION GENERATOR</p>
+        
+        <input type="text" id="number" placeholder="919876543210" autocomplete="off">
+        <button onclick="getCode()">GET PAIRING CODE</button>
+        
+        <div class="loading" id="loading">Connecting to server...</div>
+        <div class="result" id="codeDisplay"></div>
+    </div>
+
+    <script>
+        async function getCode() {
+            const num = document.getElementById("number").value;
+            const loading = document.getElementById("loading");
+            const display = document.getElementById("codeDisplay");
+
+            if(!num || num.length < 10) {
+                alert("Please enter a valid number with country code!");
+                return;
+            }
+
+            loading.style.display = "block";
+            display.style.display = "none";
+            display.innerText = "";
+
+            try {
+                const res = await fetch(`/pair?phone=${num}`);
+                const data = await res.json();
+
+                if(data.code) {
+                    loading.style.display = "none";
+                    display.style.display = "block";
+                    display.innerText = data.code;
+                    // Auto copy logic (Optional)
+                    navigator.clipboard.writeText(data.code.replace(/-/g, ""));
+                    alert("Code Copied! Open WhatsApp and Paste.");
+                } else {
+                    loading.innerText = "Error! Try Again.";
+                }
+            } catch(e) {
+                loading.innerText = "Server Error.";
+            }
+        }
+    </script>
+</body>
+</html>
