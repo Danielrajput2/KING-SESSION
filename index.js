@@ -10,9 +10,8 @@ app.use(express.static(__dirname)); // Serve HTML file
 
 const PORT = process.env.PORT || 3000;
 
-// Temporary storage cleanup
+// Temp folder clean logic
 setInterval(() => {
-    // Har 1 ghante me temp folders delete karega
     const tempDir = './temp';
     if (fs.existsSync(tempDir)) {
         fs.emptyDirSync(tempDir);
@@ -27,10 +26,7 @@ app.get('/pair', async (req, res) => {
     let num = req.query.phone;
     if (!num) return res.json({ error: "Phone number is required" });
 
-    // Clean number
     num = num.replace(/[^0-9]/g, '');
-    
-    // Create random ID for session
     const id = 'session-' + Math.random().toString(36).substring(7);
     const sessionDir = `./temp/${id}`;
 
@@ -41,14 +37,21 @@ app.get('/pair', async (req, res) => {
             auth: state,
             printQRInTerminal: false,
             logger: pino({ level: "silent" }),
-            browser: Browsers.macOS("Safari"),
+            // 🔥 YAHAN CHANGE KIYA HAI: Ubuntu/Chrome use karenge jo stable hai
+            browser: Browsers.ubuntu("Chrome"),
         });
 
         if (!sock.authState.creds.me && !sock.authState.creds.registered) {
             await delay(1500);
-            const code = await sock.requestPairingCode(num);
-            if (!res.headersSent) {
-                res.json({ code: code?.match(/.{1,4}/g)?.join("-") });
+            
+            // Pairing Code logic with retry safety
+            try {
+                const code = await sock.requestPairingCode(num);
+                if (!res.headersSent) {
+                    res.json({ code: code?.match(/.{1,4}/g)?.join("-") });
+                }
+            } catch (e) {
+                if (!res.headersSent) res.json({ error: "WhatsApp ne Request Block kardi. Thodi der baad try karein." });
             }
         }
 
@@ -59,23 +62,32 @@ app.get('/pair', async (req, res) => {
             
             if (connection === 'open') {
                 await delay(1000);
-                // Send Creds to User's WhatsApp
+                // Send Creds to User
                 const credsPath = path.join(sessionDir, 'creds.json');
+                
+                // Read file content
+                const credsData = fs.readFileSync(credsPath);
+                
+                // Direct file send karne ki jagah JSON content bhejo (More reliable)
+                await sock.sendMessage(sock.user.id, { 
+                    text: "👑 *KING B2K SESSION*\n\nNiche diye gaye code ko copy karke 'creds.json' file banayein ya bot me directly paste karein (agar supported hai).\n\n" + JSON.stringify(JSON.parse(credsData))
+                });
+
+                // File bhi bhej do backup ke liye
                 await sock.sendMessage(sock.user.id, { 
                     document: { url: credsPath }, 
                     mimetype: 'application/json', 
                     fileName: 'creds.json',
-                    caption: '👑 *KING B2K SESSION FILE*\n\nDo not share this file with anyone!'
+                    caption: '👑 *KING B2K SESSION FILE*'
                 });
                 
-                // Close and Delete
                 await sock.end();
                 fs.removeSync(sessionDir);
             }
         });
 
     } catch (err) {
-        if (!res.headersSent) res.json({ error: "Something went wrong. Try again." });
+        if (!res.headersSent) res.json({ error: "Server Error" });
         console.log(err);
     }
 });
